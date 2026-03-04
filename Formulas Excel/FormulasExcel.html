@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de Fórmulas Excel</title>
+<style>
+body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; margin: 2rem; max-width: 900px; color: #333; background: #f8fafc }
+.card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) }
+h1 { font-size: 24px; margin: 0 0 1.5rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem }
+label { display:block; margin: 12px 0 6px; font-weight: 600; font-size: 14px; color: #475569 }
+input[type="text"], input[type="number"], select, textarea { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box; font-size: 14px; transition: border-color 0.2s }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; ring: 2px solid #3b82f622 }
+.row { display:flex; gap:16px; flex-wrap: wrap; margin-bottom: 12px }
+.row .col { flex:1; min-width: 200px }
+.buttons { display:flex; gap:10px; margin: 1.5rem 0 }
+button { padding:10px 20px; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; font-weight: 600; transition: background 0.2s }
+button:hover { background:#1d4ed8 }
+.btn-secondary { background:#f1f5f9; color:#475569; border: 1px solid #e2e8f0 }
+.btn-secondary:hover { background:#e2e8f0 }
+textarea { height: 320px; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; background: #f1f5f9; border-color: #e2e8f0; resize: vertical }
+.footer { margin-top: 1rem; color:#64748b; font-size:13px; display: flex; justify-content: space-between }
+.badge { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px; font-size: 11px; display: none }
+</style>
+</head>
+<body>
+<div style="margin-bottom: 1rem;">
+  <a href="../index.html" style="text-decoration: none; color: #64748b; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+    <span>←</span> Volver al inicio
+  </a>
+</div>
+<div class="card">
+  <h1>Generador de Fórmulas Excel</h1>
+  
+  <div class="row">
+    <div class="col" style="flex: 2">
+      <label>Tipo de fórmula</label>
+      <select id="tipo">
+        <option value="contar_simple">CONTAR.SI (Simple)</option>
+        <option value="contar_si_blanco">CONTAR.SI (Si celda vacía)</option>
+        <option value="contar_si_cero">CONTAR.SI (Si resultado 0)</option>
+        <option value="unique">UNIQUE (Sin blancos)</option>
+      </select>
+    </div>
+    <div class="col">
+      <label>Separador (Excel)</label>
+      <select id="sep">
+        <option value=";">;</option>
+        <option value=",">,</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col" style="flex: 2">
+      <label>Rango fijo</label>
+      <input id="rango" type="text" value="BDR!A$1:A$105463" placeholder="ej. Hoja1!A1:A100">
+    </div>
+  </div>
+
+  <div class="row" id="row-contar">
+    <div class="col">
+      <label>Prefijo celda</label>
+      <input id="prefijo" type="text" value="B" maxlength="5">
+    </div>
+    <div class="col">
+      <label>Inicio nº</label>
+      <input id="inicio" type="number" value="1" min="1">
+    </div>
+    <div class="col">
+      <label>Cantidad</label>
+      <input id="cantidad" type="number" value="10" min="1">
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="generar">Generar</button>
+    <button id="copiar">Copiar al portapapeles</button>
+    <button id="limpiar" class="btn-secondary">Limpiar</button>
+    <button id="seleccionar" class="btn-secondary">Seleccionar todo</button>
+  </div>
+
+  <label>Resultado <span id="copiado-badge" class="badge">¡Copiado!</span></label>
+  <textarea id="salida" readonly placeholder="Aquí aparecerán las fórmulas..."></textarea>
+  
+  <div class="footer">
+    <span>Cada línea es una celda en Excel.</span>
+    <span>v2.4</span>
+  </div>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+const inputs = ['tipo', 'rango', 'prefijo', 'inicio', 'cantidad', 'sep'];
+
+function generar() {
+  const t = el('tipo').value;
+  const r = el('rango').value.trim();
+  const p = el('prefijo').value.trim();
+  const start = parseInt(el('inicio').value, 10);
+  const count = parseInt(el('cantidad').value, 10);
+  const s = el('sep').value;
+
+  if (!r) return;
+
+  const formulas = [];
+  
+  if (t === 'unique') {
+    formulas.push(`=UNIQUE(FILTER(${r}${s} ${r}<>""))`);
+  } else {
+    if (!p || isNaN(start) || isNaN(count)) return;
+    for (let i = 0; i < count; i++) {
+      const num = start + i;
+      const cell = `${p}${num}`;
+      const formula = `CONTAR.SI(${r}${s} ${cell})`;
+      
+      let full = '';
+      if (t === 'contar_simple') {
+        full = `=${formula}`;
+      } else if (t === 'contar_si_blanco') {
+        full = `=SI(${cell}=""; ""; ${formula})`;
+      } else if (t === 'contar_si_cero') {
+        full = `=SI(${formula}=0; ""; ${formula})`;
+      }
+      formulas.push(full);
+    }
+  }
+  el('salida').value = formulas.join('\n');
+}
+
+function copiar() {
+  if (!el('salida').value) generar();
+  const text = el('salida').value;
+  
+  const finish = () => {
+    const b = el('copiado-badge');
+    b.style.display = 'inline';
+    setTimeout(() => b.style.display = 'none', 2000);
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(finish);
+  } else {
+    el('salida').select();
+    document.execCommand('copy');
+    finish();
+  }
+}
+
+function toggleFields() {
+  const t = el('tipo').value;
+  const rowContar = el('row-contar');
+  const rango = el('rango');
+  
+  if (t === 'unique') {
+    rowContar.style.display = 'none';
+    if (rango.value === 'BDR!A$1:A$105463') {
+      rango.value = 'BDR_LIMPIA!C2:C10001';
+    }
+  } else {
+    rowContar.style.display = 'flex';
+    if (rango.value === 'BDR_LIMPIA!C2:C10001') {
+      rango.value = 'BDR!A$1:A$105463';
+    }
+  }
+}
+
+// Eventos
+el('tipo').onchange = () => {
+  toggleFields();
+  generar();
+};
+el('generar').onclick = generar;
+el('copiar').onclick = copiar;
+el('limpiar').onclick = () => el('salida').value = '';
+el('seleccionar').onclick = () => el('salida').select();
+
+// Auto-generar al cambiar cualquier input
+inputs.forEach(id => el(id).oninput = generar);
+
+// Carga inicial
+window.onload = () => {
+  toggleFields();
+  generar();
+};
+</script>
+</body>
+</html>

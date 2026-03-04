@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Separador de Excel por Zona</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23107C41'%3E%3Cpath d='M21.17,3.25a1.25,1.25,0,0,0-.28-.32l-.11-.1a1.25,1.25,0,0,0-.4-.21,1.21,1.21,0,0,0-.49-.07H4.11a1.25,1.25,0,0,0-1.25,1.25V20.89a1.25,1.25,0,0,0,1.25,1.25H19.89a1.25,1.25,0,0,0,1.25-1.25V4.11A1.21,1.21,0,0,0,21.17,3.25ZM14.3,18.5H12.19l-2-3.23-2,3.23H6L9.62,12.5,6,6.5H8.11l2,3.23,2-3.23H14.3L10.69,12.5Z'/%3E%3C/svg%3E">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; color: #333; background: #f8fafc; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 2rem; box-sizing: border-box; }
+        .card { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 900px; }
+        h1 { font-size: 24px; margin: 0 0 1.5rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .input-group { margin: 2rem 0; padding: 2rem; border: 2px dashed #cbd5e1; border-radius: 12px; transition: border-color 0.2s; }
+        .input-group:hover { border-color: #3b82f6; }
+        input[type="file"] { display: none; }
+        .file-label { display: inline-block; padding: 12px 24px; background: #2563eb; color: #fff; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .file-label:hover { background: #1d4ed8; }
+        .status { margin-top: 1rem; color: #64748b; font-size: 14px; }
+        #download-btn { display: none; margin: 1rem auto; padding: 12px 24px; background: #10b981; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        #download-btn:hover { background: #059669; }
+        .footer { margin-top: 2rem; color: #64748b; font-size: 13px; border-top: 1px solid #e2e8f0; padding-top: 1rem; }
+        #area-list { margin-top: 1.5rem; text-align: left; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; }
+        .area-item { padding: 4px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <a href="../index.html" style="position: absolute; top: 1.5rem; left: 1.5rem; text-decoration: none; color: #94a3b8; font-size: 13px; display: flex; align-items: center; gap: 4px; transition: color 0.2s;" onmouseover="this.style.color='#64748b'" onmouseout="this.style.color='#94a3b8'">
+        <span>←</span> Volver al inicio
+    </a>
+    <div class="card">
+        <h1>Separador de Excel por Circuito</h1>
+        <p>Sube un archivo Excel (.xlsx) para separar sus filas en archivos individuales por "Zona administrativa", manteniendo la separación por hojas de "Area" y filtros.</p>
+        
+        <div class="input-group">
+            <input type="file" id="file-input" accept=".xlsx, .xls">
+            <label for="file-input" class="file-label">Seleccionar archivo Excel</label>
+            <div id="file-name" class="status">Ningún archivo seleccionado</div>
+        </div>
+
+        <div id="status-msg" class="status"></div>
+        <div id="zone-list" style="margin-top: 1.5rem; text-align: left; max-height: 350px; overflow-y: auto; display: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;"></div>
+        
+        <div id="download-all-container" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+            <button id="download-all-btn" style="padding: 10px 20px; border: none; border-radius: 8px; background: #4f46e5; color: #fff; cursor: pointer; font-weight: 600; transition: background 0.2s;">Descargar Todos</button>
+        </div>
+
+        <div class="footer">
+            Se genera 1 archivo por cada Zona administrativa encontrada. Dentro de cada archivo, se separa por hojas según el Área.
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const statusMsg = document.getElementById('status-msg');
+        const zoneList = document.getElementById('zone-list');
+        const downloadAllContainer = document.getElementById('download-all-container');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+
+        let rawRows = [];
+        let originalHeaders = [];
+        let originalFileName = "";
+        let areaColIndex = -1;
+        let zonaColIndex = -1;
+        let nombreColIndex = -1;
+        let zonaSimpleColIndex = -1;
+
+        function downloadZone(zoneName, isMassDownload = false) {
+            if (!isMassDownload) {
+                statusMsg.textContent = `Generando archivo para la zona: ${zoneName}...`;
+            }
+
+            const indicesFromLetters = [
+                5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+                23, 24, 25, 26, 27, 28, 29, 30
+            ];
+            const originalIndicesToRemove = new Set(indicesFromLetters);
+            if (nombreColIndex !== -1) originalIndicesToRemove.add(nombreColIndex);
+            if (zonaColIndex !== -1) originalIndicesToRemove.add(zonaColIndex);
+            if (zonaSimpleColIndex !== -1) originalIndicesToRemove.add(zonaSimpleColIndex);
+            
+            const finalIndicesToRemove = new Set(Array.from(originalIndicesToRemove).map(i => i >= 1 ? i + 1 : i));
+
+            let newHeaders = [...originalHeaders];
+            newHeaders.splice(1, 0, "Cantidad");
+            const filteredHeaders = newHeaders.filter((_, index) => !finalIndicesToRemove.has(index));
+
+            const zoneRows = rawRows.filter(row => (row[zonaColIndex] || 'Sin Zona').toString().trim() === zoneName);
+
+            if (zoneRows.length === 0) {
+                if (!isMassDownload) statusMsg.textContent = `No se encontraron datos para la zona: ${zoneName}.`;
+                return;
+            }
+
+            const workbook = XLSX.utils.book_new();
+
+            const dataByArea = {};
+            zoneRows.forEach(row => {
+                const areaVal = (row[areaColIndex] || 'Sin Area').toString().trim();
+                if (!dataByArea[areaVal]) dataByArea[areaVal] = [];
+                dataByArea[areaVal].push(row);
+            });
+
+            Object.keys(dataByArea).sort().forEach(areaName => {
+                const areaRows = dataByArea[areaName];
+                const counts = {};
+                const uniqueRowsMap = new Map();
+
+                areaRows.forEach(row => {
+                    const valA = row[0] === undefined ? "" : row[0].toString().trim();
+                    counts[valA] = (counts[valA] || 0) + 1;
+                    if (!uniqueRowsMap.has(valA)) {
+                        uniqueRowsMap.set(valA, row);
+                    }
+                });
+
+                const finalRows = [];
+                uniqueRowsMap.forEach((row, valA) => {
+                    let newRow = [...row];
+                    newRow.splice(1, 0, counts[valA]);
+                    const filteredRow = newRow.filter((_, index) => !finalIndicesToRemove.has(index));
+                    finalRows.push(filteredRow);
+                });
+
+                const worksheet = XLSX.utils.aoa_to_sheet([filteredHeaders, ...finalRows]);
+                const sheetName = areaName.replace(/[\\/?:*[]]/g, '_').substring(0, 31);
+                XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            });
+
+            const safeZoneName = zoneName.replace(/[\\/?:*<>|]/g, '_');
+            XLSX.writeFile(workbook, `${originalFileName}_${safeZoneName}.xlsx`);
+            
+            if (!isMassDownload) {
+                statusMsg.textContent = `¡Archivo para '${zoneName}' exportado con éxito!`;
+            }
+        }
+
+        async function downloadAllZones() {
+            const zones = Array.from(new Set(rawRows.map(row => (row[zonaColIndex] || 'Sin Zona').toString().trim()))).sort();
+            if (zones.length === 0) return;
+
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.textContent = 'Descargando...';
+
+            for (let i = 0; i < zones.length; i++) {
+                const zone = zones[i];
+                statusMsg.textContent = `(${i + 1}/${zones.length}) Descargando: ${zone}...`;
+                downloadZone(zone, true);
+                await new Promise(resolve => setTimeout(resolve, 750));
+            }
+            
+            statusMsg.textContent = `¡Descarga masiva de ${zones.length} archivos finalizada!`;
+            downloadAllBtn.disabled = false;
+            downloadAllBtn.textContent = 'Descargar Todos';
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            originalFileName = file.name.split('.').slice(0, -1).join('.');
+            fileName.textContent = file.name;
+            statusMsg.textContent = "Procesando archivo...";
+            zoneList.style.display = 'none';
+            zoneList.innerHTML = '';
+            downloadAllContainer.style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (json.length < 2) {
+                        statusMsg.textContent = "El archivo no tiene suficientes datos.";
+                        return;
+                    }
+
+                    originalHeaders = json[0];
+                    rawRows = json.slice(1);
+
+                    areaColIndex = originalHeaders.findIndex(h => h && h.toString().toLowerCase().trim() === 'area');
+                    zonaColIndex = originalHeaders.findIndex(h => h && h.toString().toLowerCase().trim().includes('zona administrativa'));
+                    nombreColIndex = originalHeaders.findIndex(h => h && h.toString().toLowerCase().trim() === 'nombre');
+                    zonaSimpleColIndex = originalHeaders.findIndex(h => h && h.toString().toLowerCase().trim() === 'zona');
+                    if (zonaColIndex === -1 && originalHeaders.length > 21) zonaColIndex = 21;
+
+                    if (areaColIndex === -1 || zonaColIndex === -1) {
+                        statusMsg.textContent = 'No se encontró la columna "Area" y/o "Zona administrativa".';
+                        return;
+                    }
+
+                    const zones = new Set(rawRows.map(row => (row[zonaColIndex] || 'Sin Zona').toString().trim()));
+                    statusMsg.textContent = `Se encontraron ${zones.size} zonas administrativas.`;
+                    
+                    zoneList.innerHTML = '<strong>Zonas detectadas:</strong>';
+                    Array.from(zones).sort().forEach(zone => {
+                        const item = document.createElement('div');
+                        item.style.display = 'flex';
+                        item.style.justifyContent = 'space-between';
+                        item.style.alignItems = 'center';
+                        item.style.padding = '8px 4px';
+                        item.style.borderBottom = '1px solid #f1f5f9';
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = zone;
+                        nameSpan.style.fontSize = '14px';
+
+                        const button = document.createElement('button');
+                        button.textContent = 'Descargar';
+                        button.dataset.zone = zone;
+                        button.className = 'download-zone-btn';
+                        button.style.padding = '6px 12px';
+                        button.style.border = 'none';
+                        button.style.borderRadius = '6px';
+                        button.style.background = '#10b981';
+                        button.style.color = '#fff';
+                        button.style.cursor = 'pointer';
+                        button.style.transition = 'background 0.2s';
+
+                        item.appendChild(nameSpan);
+                        item.appendChild(button);
+                        zoneList.appendChild(item);
+                    });
+
+                    zoneList.style.display = 'block';
+                    if (zones.size > 0) {
+                        downloadAllContainer.style.display = 'block';
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    statusMsg.textContent = "Error al procesar el archivo. Asegúrate de que es un .xlsx válido.";
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        zoneList.addEventListener('click', (e) => {
+            if (e.target && e.target.classList.contains('download-zone-btn')) {
+                const zoneNameToDownload = e.target.dataset.zone;
+                if (zoneNameToDownload) {
+                    downloadZone(zoneNameToDownload);
+                }
+            }
+        });
+
+        downloadAllBtn.addEventListener('click', downloadAllZones);
+    </script>
+</body>
+</html>
