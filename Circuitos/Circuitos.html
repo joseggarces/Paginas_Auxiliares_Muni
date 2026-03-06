@@ -65,6 +65,32 @@
         let nombreColIndex = -1;
         let zonaSimpleColIndex = -1;
 
+        const zoneGroups = {
+            "1-001 A": "1-001 ABC",
+            "1-001 B": "1-001 ABC",
+            "1-001 C": "1-001 ABC",
+            "1-008 A": "1-008 ABCDE",
+            "1-008 B": "1-008 ABCDE",
+            "1-008 C": "1-008 ABCDE",
+            "1-008 D": "1-008 ABCDE",
+            "1-008 E": "1-008 ABCDE",
+            "1-015 A": "1-015 AB",
+            "1-015 B": "1-015 AB",
+            "1-021 A": "1-021 ABC",
+            "1-021 B": "1-021 ABC",
+            "1-021 C": "1-021 ABC",
+            "1-022": "1-022 ABCDE",
+            "1-022 A": "1-022 ABCDE",
+            "1-022 B": "1-022 ABCDE",
+            "1-022 C": "1-022 ABCDE",
+            "1-022 D": "1-022 ABCDE",
+            "1-022 E": "1-022 ABCDE",
+        };
+
+        function getZoneGroup(zoneName) {
+            return zoneGroups[zoneName] || zoneName;
+        }
+
         function downloadZone(zoneName, isMassDownload = false) {
             if (!isMassDownload) {
                 statusMsg.textContent = `Generando archivo para la zona: ${zoneName}...`;
@@ -85,7 +111,7 @@
             newHeaders.splice(1, 0, "Cantidad");
             const filteredHeaders = newHeaders.filter((_, index) => !finalIndicesToRemove.has(index));
 
-            const zoneRows = rawRows.filter(row => (row[zonaColIndex] || 'Sin Zona').toString().trim() === zoneName);
+            const zoneRows = rawRows.filter(row => getZoneGroup((row[zonaColIndex] || 'Sin Zona').toString().trim()) === zoneName);
 
             if (zoneRows.length === 0) {
                 if (!isMassDownload) statusMsg.textContent = `No se encontraron datos para la zona: ${zoneName}.`;
@@ -136,7 +162,7 @@
         }
 
         async function downloadAllZones() {
-            const zones = Array.from(new Set(rawRows.map(row => (row[zonaColIndex] || 'Sin Zona').toString().trim()))).sort();
+            const zones = Array.from(new Set(rawRows.map(row => getZoneGroup((row[zonaColIndex] || 'Sin Zona').toString().trim())))).sort();
             if (zones.length === 0) return;
 
             downloadAllBtn.disabled = true;
@@ -193,7 +219,7 @@
                         return;
                     }
 
-                    const zones = new Set(rawRows.map(row => (row[zonaColIndex] || 'Sin Zona').toString().trim()));
+                    const zones = new Set(rawRows.map(row => getZoneGroup((row[zonaColIndex] || 'Sin Zona').toString().trim())));
                     statusMsg.textContent = `Se encontraron ${zones.size} zonas administrativas.`;
                     
                     zoneList.innerHTML = '<strong>Zonas detectadas:</strong>';
