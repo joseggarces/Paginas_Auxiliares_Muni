@@ -30,6 +30,7 @@
         .table td { vertical-align: middle; padding: 12px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
         .card-audit { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
         .badge { font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+        .badge-fixed-width { display: inline-block; min-width: 110px; text-align: center; }
 
         /* Animaciones para la auditoría */
         .audit-enter {
@@ -686,10 +687,10 @@
                     
                     let badge = '';
                     if (person.isUnknown) {
-                         badge = '<span class="badge bg-secondary">Sin Horario</span>';
+                         badge = '<span class="badge bg-secondary badge-fixed-width">Sin Horario</span>';
                     } else {
                         let validation = validateSchedule(person.jornada, l.time);
-                        badge = validation.isValid ? '<span class="badge bg-success">En Horario</span>' : '<span class="badge bg-danger">Fuera de Horario</span>';
+                        badge = validation.isValid ? '<span class="badge bg-success badge-fixed-width">En Horario</span>' : '<span class="badge bg-danger badge-fixed-width">Fuera de Horario</span>';
                     }
                     
                     return `<div><i class="bi bi-clock"></i> ${badge} <strong>${timePart}</strong> ${formattedDate}</div>`;
