@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencia - Gestión de Personal</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; color: #333; background: #f8fafc; margin: 2rem; }
+        .container { background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
+        h1 { font-size: 24px; margin: 0 0 1.5rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; text-align: left !important; }
+        h4 { font-size: 18px; color: #475569; margin-bottom: 1rem; font-weight: 600; }
+        .nav-tabs { border-bottom: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .nav-link { color: #64748b; border: none; font-weight: 500; padding: 0.5rem 1rem; }
+        .nav-link.active { color: #2563eb !important; border-bottom: 2px solid #2563eb !important; background: transparent !important; }
+        .form-section { background: #f1f5f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #e2e8f0; }
+        .btn-primary { background: #2563eb; border: none; font-weight: 600; padding: 8px 16px; border-radius: 8px; transition: background 0.2s; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-weight: 600; padding: 8px 16px; border-radius: 8px; transition: background 0.2s; }
+        .btn-secondary:hover { background: #e2e8f0; color: #1e293b; }
+        .btn-outline-secondary { border-color: #cbd5e1; color: #64748b; }
+        .btn-outline-secondary:hover { background: #f8fafc; color: #1e293b; border-color: #94a3b8; }
+        .btn-success { background: #16a34a; border: none; font-weight: 600; padding: 8px 16px; border-radius: 8px; }
+        .btn-success:hover { background: #15803d; }
+        .form-control { border-radius: 8px; border: 1px solid #cbd5e1; padding: 10px; font-size: 14px; transition: border-color 0.2s; }
+        .form-control:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .table thead th { background: #f8fafc !important; color: #475569 !important; font-weight: 600; font-size: 13px; border-bottom: 2px solid #e2e8f0 !important; padding: 12px; }
+        .table td { vertical-align: middle; padding: 12px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+        .card-audit { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+        .badge { font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+
+        /* Animaciones para la auditoría */
+        .audit-enter {
+            animation: slideInRight 0.3s ease-out forwards;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .audit-exit {
+            animation: slideOutLeft 0.3s ease-in forwards;
+        }
+
+        @keyframes slideOutLeft {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div style="margin-bottom: 1rem; max-width: 1000px; margin-left: auto; margin-right: auto;">
+        <a href="../index.html" style="text-decoration: none; color: #64748b; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+            <span>←</span> Volver al inicio
+        </a>
+    </div>
+    <div class="container">
+        <h1>Asistencia y Asignación de Tareas</h1>
+
+        <!-- Toast Container -->
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+            <div id="liveToast" class="toast align-items-center text-white bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body" id="toastMessage">
+                        Mensaje del sistema
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestañas de Navegación -->
+        <ul class="nav nav-tabs mb-4" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">Gestión de Personal</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">Registros de Reloj</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab" onclick="startAudit()">Auditoría de Asistencia</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Pestaña Gestión de Personal -->
+            <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                <!-- Formulario de Ingreso Masivo -->
+                <div class="form-section">
+                    <h4>Importar Personal (Masivo)</h4>
+                    <p class="text-muted small">Copie y pegue los datos desde Excel o texto (separados por tabulaciones). Formato: Agente | Días | Jornada | Tarea</p>
+                    <form id="dataForm">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="bulkInput" rows="6" placeholder="Pegue aquí sus datos..."></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="clearBulkInput()">Vaciar Ingreso</button>
+                            <button type="button" class="btn btn-secondary me-2" onclick="clearTable()">Borrar Tabla</button>
+                            <button type="submit" class="btn btn-primary">Procesar y Agregar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabla de Datos -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered" id="mainTable">
+                        <thead>
+                            <tr>
+                                <th>Agentes</th>
+                                <th>Días laborales</th>
+                                <th>Jornada laboral</th>
+                                <th>Tarea Asignada</th>
+                                <th style="width: 50px;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Los datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pestaña Registros de Reloj -->
+            <div class="tab-pane fade" id="logs" role="tabpanel">
+                <div class="form-section">
+                    <h4>Procesar Logs de Reloj Biométrico</h4>
+                    <p class="text-muted small">
+                        Pegue los datos crudos (7 columnas por registro).<br>
+                        Se filtrarán automáticamente los registros sin nombre (Name = "-").<br>
+                        Columnas esperadas: No., Employee ID, Name, Card No., Event Types, Time, Operation.
+                    </p>
+                    <form id="logForm">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="logInput" rows="6" placeholder="Pegue aquí los logs del reloj..."></textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="clearLogInput()">Vaciar Log</button>
+                            <button type="button" class="btn btn-secondary me-2" onclick="clearLogTable()">Borrar Tabla</button>
+                            <button type="submit" class="btn btn-success">Procesar y Agregar Logs</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered" id="logTable">
+                        <thead>
+                            <tr>
+                                <th>Agente</th>
+                                <th>Jornada Laboral (Asignada)</th>
+                                <th>Marca en el Reloj</th>
+                                <th>Tipo de Marca</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Los logs procesados se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pestaña Auditoría de Asistencia -->
+            <div class="tab-pane fade" id="audit" role="tabpanel">
+                <div id="auditInterface" style="display:none;">
+                    <div class="card-audit text-center mb-4">
+                        <div class="mb-3 text-muted small uppercase tracking-wider">
+                            Revisión de Agente <span id="currentAuditIndex" class="fw-bold text-primary">0</span> de <span id="totalAuditCount">0</span>
+                        </div>
+                        <div class="mb-4">
+                            <h2 class="mb-1" id="auditAgentName" style="color: #1e293b; font-weight: 700;">Nombre del Agente</h2>
+                            <p class="text-muted" id="auditAgentDetails">Jornada: 08:00 - 14:00</p>
+                        </div>
+
+                        <div class="alert alert-warning border-0 shadow-sm mb-4" id="auditSubStatusPrompt" style="display:none; background-color: #fef3c7; color: #92400e;">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Cambio de Turno seleccionado.</strong> Elija ahora el estado para este turno:
+                        </div>
+
+                        <div class="row g-4 mt-2">
+                            <!-- Columna Izquierda: Botones de Estado -->
+                            <div class="col-md-6">
+                                <h6 class="text-muted small fw-bold mb-3 text-start uppercase tracking-wider">MARCAR ESTADO:</h6>
+                                <div class="d-grid gap-2" id="auditButtons">
+                                    <button type="button" class="btn btn-success" onclick="handleAuditClick('Presente')">Presente</button>
+                                    <button type="button" class="btn btn-warning" onclick="handleAuditClick('Tarde')">Tarde</button>
+                                    <button type="button" class="btn btn-danger" onclick="handleAuditClick('Ausente')">Ausente</button>
+                                    <button type="button" class="btn btn-info text-white" onclick="handleAuditClick('Vacaciones')" id="btnVacaciones">De Vacaciones</button>
+                                    <button type="button" class="btn btn-primary" onclick="handleAuditClick('Cambio de Turno')" id="btnCambioTurno">Cambio de Turno</button>
+                                </div>
+                            </div>
+
+                            <!-- Columna Derecha: Marcas Detectadas -->
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border border-light-subtle text-start h-100" id="auditAgentLogs">
+                                    <h6 class="text-muted small fw-bold mb-2 uppercase tracking-wider">MARCAS DETECTADAS:</h6>
+                                    <div id="logsList" class="d-flex flex-column gap-1">Sin marcas registradas</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 d-flex justify-content-between border-top pt-3">
+                            <button class="btn btn-link text-muted text-decoration-none" id="btnPrevAgent" onclick="prevAgent()">
+                                <i class="bi bi-chevron-left"></i> Anterior
+                            </button>
+                            <button class="btn btn-link text-primary text-decoration-none fw-bold" id="btnNextAgent" onclick="nextAgent()">
+                                Omitir / Siguiente <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="auditSummary">
+                    <div class="p-4 bg-light rounded-3 text-center border border-light-subtle shadow-sm" id="auditStartMsg">
+                        <i class="bi bi-person-check-fill text-primary display-4 mb-3"></i>
+                        <p class="mb-3 text-muted">Asegúrese de cargar primero el <strong>Personal</strong> y los <strong>Logs de Reloj</strong> antes de comenzar la auditoría.</p>
+                        <button class="btn btn-primary" onclick="startAudit()">Comenzar Auditoría</button>
+                    </div>
+
+                    <h4 class="mt-5 d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark-text text-primary"></i>
+                        Resumen de Asistencia
+                    </h4>
+                    <div class="mb-3 d-flex justify-content-end gap-2">
+                        <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" onclick="copySummaryToClipboard()">
+                            <i class="bi bi-clipboard"></i> Copiar Resumen Agrupado
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="auditTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Agente</th>
+                                    <th>Estado</th>
+                                    <th>Marcas Registradas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Resultados -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos iniciales proporcionados
+        const initialData = [
+            { agente: "Cobarrubia Sebastian", dias: "Días Hábiles de semana", jornada: "00:00 hs a 06:00 hs", tarea: "Atención telefónica 147 - Chat SIGEM - WhatsApp - Plataforma SIGEM (Reclamos y solicitudes de cuentas)" },
+            { agente: "Carozzo Claudia Beatriz", dias: "Días Hábiles de semana", jornada: "06:00 hs a 12:00 hs", tarea: "Atención telefónica 147 - Chat SIGEM" },
+            { agente: "Luna Garro Nahuel Gustavo", dias: "Días Hábiles de semana", jornada: "06:00 hs a 12:00 hs", tarea: "WhatsApp - Plataforma SIGEM (Reclamos y solicitudes de cuentas)" },
+            { agente: "Abarca Maria Nelida", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Chat SIGEM" },
+            { agente: "Altamirano Lia", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Chat SIGEM" },
+            { agente: "Salgan Edgar Jesús", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Paniagua Yanina", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Bastias Roberto Ezequiel", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Medina Miguel", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "WhatsApp - Plataforma SIGEM (Reclamos y solicitudes de cuentas)" },
+            { agente: "Jofre Guillermo Adrian", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "WhatsApp - Plataforma SIGEM (Reclamos y solicitudes de cuentas)" },
+            { agente: "Miranda Baigorria Jennifer", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Recepción de ciudadanos" },
+            { agente: "Velasco Maria Agustina", dias: "Días Hábiles de semana", jornada: "08:00 hs a 14:00 hs", tarea: "Recepción de ciudadanos" },
+            { agente: "Alfaro Humberto Aldana Beatriz", dias: "Días Hábiles de semana", jornada: "14:00 hs a 20:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Funes Guillermo", dias: "Días Hábiles de semana", jornada: "14:00 hs a 20:00 hs", tarea: "WhatsApp - Plataforma SIGEM (Reclamos y solicitudes de cuentas)" },
+            { agente: "Alaniz Jesica", dias: "Días Hábiles de semana", jornada: "14:00 hs a 20:00 hs", tarea: "WhatsApp - Chat SIGEM" },
+            { agente: "Ballestero Debora Ruth", dias: "Días Hábiles de semana", jornada: "18:00 hs a 24:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Carrum Moises", dias: "Días Hábiles de semana", jornada: "18:00 hs a 24:00 hs", tarea: "Atención telefónica 147" },
+            { agente: "Mansilla Marisa Analía", dias: "Días Hábiles de semana", jornada: "18:00 hs a 24:00 hs", tarea: "WhatsApp - Chat SIGEM" }
+        ];
+
+        const tableBody = document.querySelector('#mainTable tbody');
+        const form = document.getElementById('dataForm');
+
+        // Datos de personal en memoria para cruzar información
+        let personalData = [];
+
+        // Función para renderizar una fila
+        function addRow(data) {
+            personalData.push(data); // Guardar en memoria
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.agente}</td>
+                <td>${data.dias}</td>
+                <td>${data.jornada}</td>
+                <td>${data.tarea}</td>
+                <td><button class="btn btn-danger btn-sm delete-btn" onclick="removeRow(this, '${data.agente}')">X</button></td>
+            `;
+            tableBody.appendChild(row);
+        }
+
+        function removeRow(btn, agenteName) {
+            btn.closest('tr').remove();
+            personalData = personalData.filter(p => p.agente !== agenteName);
+        }
+
+        // Función para limpiar la tabla
+        function clearTable() {
+            if(confirm('¿Está seguro de querer borrar todos los datos de la tabla?')) {
+                tableBody.innerHTML = '';
+                personalData = [];
+            }
+        }
+
+        // Función para mostrar Toasts
+        function showToast(message, type = 'dark') {
+            const toastElement = document.getElementById('liveToast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            // Cambiar color según tipo
+            toastElement.classList.remove('bg-dark', 'bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+            toastElement.classList.add(`bg-${type}`);
+            
+            toastMessage.innerText = message;
+            const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+            toast.show();
+        }
+
+        // Manejar el envío del formulario (Carga Masiva)
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const rawText = document.getElementById('bulkInput').value;
+            if (!rawText.trim()) return;
+
+            const lines = rawText.split('\n');
+            let count = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) return; // Saltar líneas vacías
+                
+                // Intentar dividir por tabulación primero
+                let parts = line.split('\t');
+                
+                // Si no hay tabulaciones, intentar inferir formato o simplemente tomar lo que haya
+                // Limpiamos espacios extra alrededor de cada parte
+                parts = parts.map(p => p.trim()).filter(p => p !== "");
+
+                if (parts.length >= 1) {
+                    const newData = {
+                        agente: parts[0] || "",
+                        dias: parts[1] || "",
+                        jornada: parts[2] || "",
+                        tarea: parts[3] || ""
+                    };
+                    addRow(newData);
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                // alert(`Se agregaron ${count} registros exitosamente.`);
+                document.getElementById('bulkInput').value = '';
+            }
+        });
+
+        // --- Lógica para Logs de Reloj ---
+        const logTableBody = document.querySelector('#logTable tbody');
+        const logForm = document.getElementById('logForm');
+
+        function clearLogTable() {
+             if(confirm('¿Borrar logs procesados?')) {
+                logTableBody.innerHTML = '';
+             }
+        }
+
+        // Función para limpiar el textarea de personal
+        function clearBulkInput() {
+            document.getElementById('bulkInput').value = '';
+            showToast("Campo de personal limpiado.", "info");
+        }
+
+        // Función para limpiar el textarea de logs
+        function clearLogInput() {
+            document.getElementById('logInput').value = '';
+            showToast("Campo de logs limpiado.", "info");
+        }
+
+        // Función auxiliar para normalizar texto (quitar acentos, minúsculas, caracteres especiales)
+        function normalizeStr(str) {
+            return str.toLowerCase()
+                      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                      .replace(/[^a-z0-9\s]/g, "") // Solo letras y números
+                      .trim();
+        }
+
+        // Función para buscar personal con tolerancia a fallos (Fuzzy Match básico)
+        function findPersonFuzzy(name) {
+            if (!name) return null;
+            const target = normalizeStr(name);
+            const targetTokens = target.split(/\s+/).filter(t => t.length > 1); // Ignorar tokens de 1 letra
+            
+            let bestMatch = null;
+            let maxScore = 0;
+
+            personalData.forEach(person => {
+                const current = normalizeStr(person.agente);
+                
+                // 1. Coincidencia exacta
+                if (current === target) {
+                    bestMatch = person;
+                    maxScore = 100; // Prioridad máxima
+                    return;
+                }
+                
+                // 2. Coincidencia de tokens (palabras)
+                const currentTokens = current.split(/\s+/);
+                let matches = 0;
+                
+                targetTokens.forEach(token => {
+                    if (currentTokens.includes(token)) {
+                        matches++;
+                    }
+                });
+
+                // Calcular score: porcentaje de palabras coincidentes respecto al nombre más largo
+                // Esto ayuda a desempatar
+                let score = matches;
+
+                // Actualizar mejor coincidencia si superamos el score anterior
+                // Exigimos al menos 1 coincidencia fuerte, pero preferiblemente más
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestMatch = person;
+                }
+            });
+
+            // Umbral: Aceptamos si al menos coinciden la mitad de las palabras o si hay al menos 2 palabras coincidentes
+            // Caso Cornejo Gladys Verónica (3 palabras) vs Cornejo Galdyz Verónica (3 palabras). Coinciden 2. Score 2. Aceptado.
+            if (maxScore >= 1) return bestMatch; 
+            return null;
+        }
+
+        // Función para parsear hora HH:MM a minutos desde medianoche
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Función para extraer hora HH:MM de la fecha completa "2026-03-10 12:02:10-03:00"
+        function extractTimeFromLog(logTimeStr) {
+            // "2026-03-10 12:02:10-03:00" -> "12:02"
+            try {
+                const timePart = logTimeStr.split(' ')[1]; // "12:02:10-03:00"
+                return timePart.substring(0, 5); // "12:02"
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Función para validar horario
+        function validateSchedule(jornadaStr, logTimeStr) {
+            if (!jornadaStr || !logTimeStr) return { isValid: false, type: 'unknown' };
+
+            // Extraer rango de jornada "08:00 hs a 14:00 hs"
+            // Regex simple para capturar HH:MM
+            const times = jornadaStr.match(/(\d{2}:\d{2})/g);
+            if (!times || times.length < 2) return { isValid: false, type: 'unknown' };
+
+            const entradaStr = times[0];
+            const salidaStr = times[1];
+            const logTimeOnlyStr = extractTimeFromLog(logTimeStr);
+
+            if (!logTimeOnlyStr) return { isValid: false, type: 'unknown' };
+
+            const entradaMin = timeToMinutes(entradaStr);
+            const salidaMin = timeToMinutes(salidaStr);
+            const logMin = timeToMinutes(logTimeOnlyStr);
+
+            // Calcular distancias absolutas para saber si es entrada o salida
+            // Manejo de cruce de medianoche (ej 18:00 a 24:00 o 22:00 a 06:00)
+            // Simplificación: Asumimos que las marcas ocurren en el día lógico correcto o cercano
+            
+            let distEntrada = Math.abs(logMin - entradaMin);
+            let distSalida = Math.abs(logMin - salidaMin);
+
+            // Ajuste para cruce de medianoche si fuera necesario (ej: marca 00:05 vs entrada 23:00)
+            // Por ahora lógica simple lineal
+
+            const isEntrada = distEntrada <= distSalida;
+            let isValid = false;
+
+            if (isEntrada) {
+                // Regla Entrada: 1 hora antes (-60) a 6 minutos despues (+6)
+                // Rango: [Entrada - 60, Entrada + 6]
+                const minLimit = entradaMin - 60;
+                const maxLimit = entradaMin + 6;
+                isValid = logMin >= minLimit && logMin <= maxLimit;
+            } else {
+                // Regla Salida: 4 minutos antes (-4) a 1 hora despues (+60)
+                // Rango: [Salida - 4, Salida + 60]
+                const minLimit = salidaMin - 4;
+                const maxLimit = salidaMin + 60;
+                isValid = logMin >= minLimit && logMin <= maxLimit;
+            }
+
+            return { isValid, type: isEntrada ? 'Entrada' : 'Salida' };
+        }
+
+        function addLogRow(data) {
+            const row = document.createElement('tr');
+            
+            // Buscar jornada laboral del agente usando Fuzzy Match
+            const personalInfo = findPersonFuzzy(data.name);
+            
+            const jornada = personalInfo ? personalInfo.jornada : '<span class="text-danger fw-bold">No asignada (No encontrado)</span>';
+            const dias = personalInfo ? personalInfo.dias : '';
+
+            // Validación de Horario y Colores
+            let rowClass = "";
+            let validationInfo = { isValid: false, type: '' };
+            
+            if (personalInfo) {
+                validationInfo = validateSchedule(jornada, data.time);
+                if (validationInfo.isValid) {
+                    rowClass = "table-success"; // Verde bootstrap
+                }
+            }
+
+            // Formatear la fecha
+            let displayTime = data.time;
+            try {
+                displayTime = data.time.replace('-03:00', ''); 
+            } catch(e) {}
+
+            row.className = rowClass;
+            row.innerHTML = `
+                <td>
+                    <strong>${data.name}</strong>
+                    ${personalInfo && normalizeStr(personalInfo.agente) !== normalizeStr(data.name) ? 
+                        `<br><small class="text-muted">Coincidencia: ${personalInfo.agente}</small>` : ''}
+                </td>
+                <td>${jornada}</td>
+                <td>
+                    ${displayTime} 
+                    ${validationInfo.isValid && validationInfo.type ? `<span class="badge bg-secondary ms-1">${validationInfo.type}</span>` : ''}
+                </td>
+                <td>${data.eventType}</td>
+            `;
+            logTableBody.appendChild(row);
+        }
+
+        // --- Lógica de Auditoría ---
+        let currentAuditIndex = 0;
+        let auditResults = {}; // { agenteName: { status: '', logs: [] } }
+        let processedLogs = []; // Almacenaremos los logs parseados globalmente
+        let auditList = []; // Lista unificada de agentes a auditar (Personal + Desconocidos)
+        let isShiftChangeMode = false; // Estado temporal para cambio de turno
+
+        function startAudit() {
+            // Construir lista de auditoría
+            auditList = [...personalData]; // Copia de personal conocido
+
+            // Buscar agentes en logs que no están en personal
+            // Usamos un Set para no repetir nombres
+            const unknownAgents = new Set();
+            
+            processedLogs.forEach(log => {
+                const match = findPersonFuzzy(log.name);
+                if (!match) {
+                    // Si no encontramos match, agregamos el nombre tal cual aparece en el log
+                    // Normalizamos un poco para evitar duplicados exactos por espacios
+                    unknownAgents.add(log.name.trim());
+                }
+            });
+
+            // Agregar desconocidos a la lista
+            unknownAgents.forEach(name => {
+                // Verificar una vez más si ya existe en la lista de auditoría (por si acaso)
+                // Aunque findPersonFuzzy falló, aseguramos no duplicar nombres idénticos
+                const exists = auditList.some(p => p.agente === name);
+                if (!exists) {
+                    auditList.push({
+                        agente: name,
+                        dias: '?',
+                        jornada: '?',
+                        tarea: '?',
+                        isUnknown: true // Bandera para identificar
+                    });
+                }
+            });
+
+            if (auditList.length === 0) {
+                showToast("No hay datos para auditar (ni personal ni logs).", "warning");
+                return;
+            }
+
+            // Preparar la interfaz
+            document.getElementById('auditStartMsg').style.display = 'none';
+            document.getElementById('auditInterface').style.display = 'block';
+            
+            // Si no hemos iniciado, empezar desde el 0
+            if (currentAuditIndex >= auditList.length) {
+                currentAuditIndex = 0;
+            }
+            
+            isShiftChangeMode = false; // Resetear modo
+            resetButtons(); // Asegurar botones visibles
+            updateAuditCard();
+            renderAuditTable();
+        }
+
+        function updateAuditCard(direction = 'next') {
+            const card = document.querySelector('.card-audit');
+            
+            // Si hay una dirección, aplicamos la animación de salida primero
+            if (direction) {
+                // Removemos clases previas para reiniciar
+                card.classList.remove('audit-enter');
+                // Añadimos clase de salida (opcional, si quisiéramos animación de salida)
+                // Pero para simplificar y hacerla rápida, aplicamos la de entrada directamente al nuevo contenido
+                // O mejor, un pequeño hack: forzamos reflow
+                void card.offsetWidth; 
+                card.classList.add('audit-enter');
+            }
+
+            if (currentAuditIndex >= auditList.length) {
+                // Fin de la auditoría
+                document.getElementById('auditInterface').style.display = 'none';
+                document.getElementById('auditStartMsg').style.display = 'block';
+                document.getElementById('auditStartMsg').innerHTML = `<strong>Auditoría Finalizada.</strong> Revise la tabla inferior.<br><button class="btn btn-primary mt-2" onclick="currentAuditIndex=0; startAudit()">Revisar Nuevamente</button>`;
+                return;
+            }
+
+            // Resetear estado de cambio de turno al cambiar de carta
+            isShiftChangeMode = false;
+            resetButtons();
+
+            const person = auditList[currentAuditIndex];
+            
+            // Actualizar contadores
+            document.getElementById('currentAuditIndex').innerText = currentAuditIndex + 1;
+            document.getElementById('totalAuditCount').innerText = auditList.length;
+            
+            // Datos del agente
+            const nameElem = document.getElementById('auditAgentName');
+            const detailsElem = document.getElementById('auditAgentDetails');
+            
+            nameElem.innerText = person.agente;
+            
+            if (person.isUnknown) {
+                nameElem.innerHTML += ' <span class="badge bg-danger">No en Nómina</span>';
+                detailsElem.innerHTML = '<strong class="text-danger">Este agente aparece en los logs pero no en la lista de personal.</strong>';
+            } else {
+                detailsElem.innerText = `Jornada: ${person.jornada} | Tarea: ${person.tarea}`;
+            }
+
+            // Buscar logs asociados a este agente
+            let agentLogs = [];
+            if (person.isUnknown) {
+                // Para desconocidos, coincidencia exacta (o normalizada simple)
+                agentLogs = processedLogs.filter(log => log.name.trim() === person.agente);
+            } else {
+                // Para conocidos, fuzzy match
+                agentLogs = processedLogs.filter(log => {
+                    const match = findPersonFuzzy(log.name);
+                    return match && normalizeStr(match.agente) === normalizeStr(person.agente);
+                });
+            }
+
+            // Mostrar logs en la tarjeta
+            const logsContainer = document.getElementById('logsList');
+            if (agentLogs.length > 0) {
+                logsContainer.innerHTML = agentLogs.map(l => {
+                    // "2026-03-10 12:02:10-03:00"
+                    // Separar fecha y hora
+                    let parts = l.time.replace('-03:00', '').split(' ');
+                    let datePart = parts[0]; // 2026-03-10
+                    let timePart = parts[1].substring(0,5); // 12:02
+
+                    // Formatear fecha dd-mm-yyyy
+                    let [yyyy, mm, dd] = datePart.split('-');
+                    let formattedDate = `${dd}-${mm}-${yyyy}`;
+                    
+                    let badge = '';
+                    if (person.isUnknown) {
+                         badge = '<span class="badge bg-secondary">Sin Horario</span>';
+                    } else {
+                        let validation = validateSchedule(person.jornada, l.time);
+                        badge = validation.isValid ? '<span class="badge bg-success">En Horario</span>' : '<span class="badge bg-danger">Fuera de Horario</span>';
+                    }
+                    
+                    return `<div><i class="bi bi-clock"></i> ${badge} <strong>${timePart}</strong> ${formattedDate}</div>`;
+                }).join('');
+            } else {
+                logsContainer.innerHTML = '<span class="text-muted">Sin marcas registradas hoy.</span>';
+            }
+        }
+
+        function handleAuditClick(status) {
+            if (status === 'Cambio de Turno') {
+                isShiftChangeMode = true;
+                // Mostrar aviso
+                document.getElementById('auditSubStatusPrompt').style.display = 'block';
+                // Ocultar botones inválidos para el segundo paso
+                document.getElementById('btnVacaciones').style.display = 'none';
+                document.getElementById('btnCambioTurno').style.display = 'none';
+                
+                // Deshabilitar navegación
+                document.getElementById('btnPrevAgent').disabled = true;
+                document.getElementById('btnNextAgent').disabled = true;
+                return;
+            }
+
+            // Si estamos en modo cambio de turno, el estado final es compuesto
+            let finalStatus = status;
+            if (isShiftChangeMode) {
+                finalStatus = `Cambio de Turno (${status})`;
+            }
+
+            setAuditStatus(finalStatus);
+        }
+
+        function resetButtons() {
+            document.getElementById('auditSubStatusPrompt').style.display = 'none';
+            document.getElementById('btnVacaciones').style.display = 'block';
+            document.getElementById('btnCambioTurno').style.display = 'block';
+            
+            // Re-habilitar navegación
+            if (document.getElementById('btnPrevAgent')) {
+                document.getElementById('btnPrevAgent').disabled = false;
+                document.getElementById('btnNextAgent').disabled = false;
+            }
+        }
+
+        function setAuditStatus(status) {
+            const person = auditList[currentAuditIndex];
+            
+            // Guardar resultado
+            // Buscar logs para guardarlos en el resumen también
+             let agentLogs = [];
+            if (person.isUnknown) {
+                agentLogs = processedLogs.filter(log => log.name.trim() === person.agente);
+            } else {
+                agentLogs = processedLogs.filter(log => {
+                    const match = findPersonFuzzy(log.name);
+                    return match && normalizeStr(match.agente) === normalizeStr(person.agente);
+                });
+            }
+
+            auditResults[person.agente] = {
+                status: status,
+                logs: agentLogs,
+                isUnknown: person.isUnknown
+            };
+
+            renderAuditTable();
+            nextAgent(true); // Pasar true para ignorar el bloqueo de navegación
+        }
+
+        function nextAgent(force = false) {
+            if (!force && isShiftChangeMode) {
+                showToast("Debe seleccionar el estado para el Cambio de Turno.", "warning");
+                return;
+            }
+            currentAuditIndex++;
+            updateAuditCard();
+        }
+
+        function prevAgent() {
+            if (isShiftChangeMode) {
+                showToast("Debe seleccionar el estado para el Cambio de Turno.", "warning");
+                return;
+            }
+            if (currentAuditIndex > 0) {
+                currentAuditIndex--;
+                updateAuditCard();
+            }
+        }
+
+        function renderAuditTable() {
+            const tbody = document.querySelector('#auditTable tbody');
+            tbody.innerHTML = '';
+
+            auditList.forEach(person => {
+                const result = auditResults[person.agente];
+                let statusBadge = '<span class="badge bg-secondary">Pendiente</span>';
+                let logsText = '-';
+
+                // Si no se ha auditado, mostrar pendiente
+                // Si es un agente desconocido y no se ha auditado, igual aparece en la lista
+                
+                if (result) {
+                    // Color del badge según estado
+                    let color = 'secondary';
+                    if (result.status === 'Presente') color = 'success';
+                    else if (result.status === 'Ausente') color = 'danger';
+                    else if (result.status === 'Tarde') color = 'warning text-dark';
+                    else if (result.status === 'Vacaciones') color = 'info text-white';
+                    else if (result.status.startsWith('Cambio de Turno')) color = 'primary'; // Compuesto
+                    
+                    statusBadge = `<span class="badge bg-${color}">${result.status}</span>`;
+                    
+                    if (result.logs && result.logs.length > 0) {
+                        logsText = result.logs.map(l => l.time.split(' ')[1].substring(0,5)).join(', ');
+                    } else {
+                        logsText = '<span class="text-muted fst-italic">Sin marcas</span>';
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                let nameHtml = person.agente;
+                if (person.isUnknown) {
+                    nameHtml += ' <span class="badge bg-danger ms-1" title="No está en nómina">!</span>';
+                    tr.classList.add('table-warning'); // Resaltar fila
+                }
+
+                tr.innerHTML = `
+                    <td>${nameHtml}</td>
+                    <td>${statusBadge}</td>
+                    <td>${logsText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportToExcel() {
+            let table = document.getElementById("auditTable");
+            let rows = Array.from(table.rows);
+            let csvContent = "";
+
+            rows.forEach(row => {
+                let cols = Array.from(row.cells).map(cell => cell.innerText);
+                csvContent += cols.join("\t") + "\n"; // Tab para que Excel lo reconozca mejor al pegar o abrir
+            });
+
+            // Crear blob y descargar
+            let blob = new Blob([csvContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
+            let link = document.createElement("a");
+            let url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Resumen_Asistencia.xls");
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function copySummaryToClipboard() {
+            if (Object.keys(auditResults).length === 0) {
+                showToast("No hay resultados de auditoría para copiar.", "warning");
+                return;
+            }
+
+            // Agrupar por estado
+            let grouped = {};
+            
+            // Inicializar grupos principales para orden preferido
+            const mainGroups = ["Presente", "Tarde", "Ausente", "Vacaciones", "Cambio de Turno"];
+            mainGroups.forEach(g => grouped[g] = []);
+
+            auditList.forEach(person => {
+                const result = auditResults[person.agente];
+                if (result) {
+                    const status = result.status;
+                    
+                    // Lógica para Cambio de Turno (Estado Compuesto)
+                    if (status.startsWith('Cambio de Turno')) {
+                        // Formato esperado: "Cambio de Turno (Presente)"
+                        
+                        // 1. Agregar a "Cambio de Turno"
+                        if (!grouped['Cambio de Turno']) grouped['Cambio de Turno'] = [];
+                        grouped['Cambio de Turno'].push(person.agente);
+
+                        // 2. Extraer el estado secundario y agregar también allí
+                        // "Cambio de Turno (Presente)" -> match "Presente"
+                        const match = status.match(/\((.*?)\)/);
+                        if (match && match[1]) {
+                            const secondaryStatus = match[1];
+                            if (!grouped[secondaryStatus]) grouped[secondaryStatus] = [];
+                            grouped[secondaryStatus].push(person.agente);
+                        }
+                    } else {
+                        // Estado normal
+                        if (!grouped[status]) grouped[status] = [];
+                        grouped[status].push(person.agente);
+                    }
+                }
+            });
+
+            // Construir texto
+            let text = "RESUMEN DE ASISTENCIA\n=====================\n";
+            
+            // Recorrer grupos. Usamos orden predefinido si existe, sino al final
+            const allKeys = Object.keys(grouped);
+            
+            // Primero los grupos principales en orden
+            mainGroups.forEach(key => {
+                if (grouped[key] && grouped[key].length > 0) {
+                    text += `\n${key.toUpperCase()} (${grouped[key].length}):\n`;
+                    grouped[key].forEach(agent => {
+                        text += `- ${agent}\n`;
+                    });
+                    // Marcar como procesado
+                    const idx = allKeys.indexOf(key);
+                    if (idx > -1) allKeys.splice(idx, 1);
+                }
+            });
+
+            // Luego el resto (si hubiera estados extraños)
+            allKeys.forEach(key => {
+                 if (grouped[key] && grouped[key].length > 0) {
+                    text += `\n${key.toUpperCase()} (${grouped[key].length}):\n`;
+                    grouped[key].forEach(agent => {
+                        text += `- ${agent}\n`;
+                    });
+                }
+            });
+
+            // Copiar al portapapeles
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Resumen agrupado copiado al portapapeles.", "success");
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+                showToast("Error al copiar al portapapeles. Revise permisos.", "danger");
+            });
+        }
+
+        // Modificamos logForm listener para guardar processedLogs globalmente
+        logForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const rawText = document.getElementById('logInput').value;
+            if (!rawText.trim()) {
+                showToast("Por favor, pegue los datos del reloj primero.", "warning");
+                return;
+            }
+
+            // Limpiamos la tabla anterior y logs procesados
+            logTableBody.innerHTML = '';
+            processedLogs = [];
+
+            // Lógica basada en líneas secuenciales
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l !== "");
+            
+            // Tipos de eventos válidos
+            const validEvents = [
+                "Authenticated via Fingerprint",
+                "Face Anti-Spoofing Detection Failed",
+                "Authenticated via Face"
+            ];
+
+            let count = 0;
+
+            for (let i = 0; i < lines.length - 3; i++) {
+                const name = lines[i];
+                const separator = lines[i+1];
+                const eventType = lines[i+2];
+                const time = lines[i+3];
+
+                // Verificar condiciones
+                if (name !== "-" && name !== "--" && separator === "--" && validEvents.includes(eventType)) {
+                    // Validar formato de fecha básico (contiene 202X)
+                    if (time.includes("202")) {
+                        const logData = {
+                            name: name,
+                            eventType: eventType,
+                            time: time
+                        };
+                        addLogRow(logData);
+                        processedLogs.push(logData); // Guardar para auditoría
+                        count++;
+                        i += 3;
+                    }
+                }
+            }
+
+            if (count > 0) {
+                // document.getElementById('logInput').value = '';
+                showToast(`Se procesaron ${count} marcas correctamente.`, "success");
+            } else {
+                showToast("No se encontraron patrones válidos (Nombre -> -- -> Evento -> Fecha). Verifique los datos pegados.", "danger");
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
